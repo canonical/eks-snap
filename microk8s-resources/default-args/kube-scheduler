@@ -1,0 +1,2 @@
+--kubeconfig=${SNAP_DATA}/credentials/scheduler.config
+--address=127.0.0.1

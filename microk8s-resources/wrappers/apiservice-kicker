@@ -1,0 +1,77 @@
+#!/bin/bash
+
+set -eu
+
+export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH"
+ARCH="$($SNAP/bin/uname -m)"
+export LD_LIBRARY_PATH="$SNAP/lib:$SNAP/usr/lib:$SNAP/lib/$ARCH-linux-gnu:$SNAP/usr/lib/$ARCH-linux-gnu"
+export LD_LIBRARY_PATH=$SNAP_LIBRARY_PATH:$LD_LIBRARY_PATH
+
+source $SNAP/actions/common/utils.sh
+
+if [ -e ${SNAP_DATA}/var/lock/clustered.lock ]
+then
+  echo "api service kicker will not run on a cluster node"
+  exit 0
+fi
+
+restart_attempt=0
+installed_registry_help=0
+while true
+do
+    if [ $restart_attempt -ge 5 ]
+    then
+        echo "Service kicker restarted the apiserver too quickly. Exiting."
+        exit 1
+    fi
+
+    # every 3 seconds
+    sleep 3
+    if ! grep -E "(--advertise-address|--bind-address)" $SNAP_DATA/args/kube-apiserver &> /dev/null &&
+       ip route | grep default &> /dev/null &&
+       snapctl services eks.daemon-apiserver | grep active &> /dev/null
+    then
+        csr_modified="$(produce_certs)"
+        if [[ "$csr_modified" -eq "1" ]];
+        then
+            echo "CSR change detected. Reconfiguring the kube-apiserver"
+            rm -rf .srl
+            snapctl restart eks.daemon-containerd
+            snapctl restart eks.daemon-apiserver
+            snapctl restart eks.daemon-proxy
+            snapctl restart eks.daemon-kubelet
+            restart_attempt=$[$restart_attempt+1]
+        else
+            restart_attempt=0
+        fi
+    fi
+
+    if [ -e "${SNAP_DATA}/args/cni-network/cni.yaml" ] &&
+       [ -e "${SNAP_DATA}/var/lock/ha-cluster" ] &&
+       ! [ -e "${SNAP_DATA}/var/lock/cni-loaded" ]
+    then
+      echo "Setting up the CNI"
+      if (${SNAP}/usr/bin/curl -L --cert ${SNAP_DATA}/certs/server.crt --key ${SNAP_DATA}/certs/server.key --cacert ${SNAP_DATA}/certs/ca.crt https://127.0.0.1:16443/readyz | grep -z "ok") &&
+         "$SNAP/kubectl" "--kubeconfig=$SNAP_DATA/credentials/client.config" apply -f "${SNAP_DATA}/args/cni-network/cni.yaml"
+      then
+        touch "${SNAP_DATA}/var/lock/cni-loaded"
+      fi
+    fi
+
+    # If no local-registry-hosting documentation has been installed,
+    # install a help guide that points to the eks registry docs.
+    #
+    # Wait until the apiserver is up and is successfully responding to
+    # namespace checks before we check for the registry configmap.
+    if [ $installed_registry_help -eq 0 ] &&
+       snapctl services eks.daemon-apiserver | grep active &> /dev/null &&
+       "$SNAP/kubectl" "--kubeconfig=$SNAP_DATA/credentials/client.config" get namespace kube-public &> /dev/null
+    then
+      if ! "$SNAP/kubectl" "--kubeconfig=$SNAP_DATA/credentials/client.config" get configmap local-registry-hosting -n kube-public &> /dev/null
+      then
+        use_manifest registry-help apply
+      fi
+      
+      installed_registry_help=1
+    fi
+done

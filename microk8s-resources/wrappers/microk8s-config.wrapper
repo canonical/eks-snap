@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -eu
+
+export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH"
+
+source $SNAP/actions/common/utils.sh
+
+if [ -e ${SNAP_DATA}/var/lock/clustered.lock ]
+then
+  echo "This MicroK8s deployment is acting as a node in a cluster. Please use the microk8s config on the master."
+  exit 0
+fi
+
+USE_LOOPBACK=false
+PARSED=$(getopt --options=lho: --longoptions=use-loopback,help,output: --name "$@" -- "$@")
+eval set -- "$PARSED"
+while true; do
+    case "$1" in
+        -l|--use-loopback)
+            USE_LOOPBACK=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo
+            echo "Retrieve the client config, similar to microk8s kubectl config view --raw"
+            echo
+            echo "Options:"
+            echo " -h, --help          Show this help"
+            echo " -l, --use-loopback  Report the cluster address using the loopback address"
+            echo "                     (127.0.0.1) rather than the default interface address"
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "$0: invalid option -- $1"
+            exit 1
+    esac
+done
+
+exit_if_no_permissions
+
+if [[ "$USE_LOOPBACK" == "true" ]]; then
+    cat "$SNAP_DATA/credentials/client.config"
+    "$SNAP/bin/echo"
+else
+    IP_ADDR="$(get_default_ip)"
+    "$SNAP/bin/sed" -e "s/127.0.0.1/$IP_ADDR/" "$SNAP_DATA/credentials/client.config"
+    "$SNAP/bin/echo"
+fi

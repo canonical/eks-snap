@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -eu
+
+export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH:/usr/bin:/usr/local/bin"
+
+snapctl stop ${SNAP_NAME}.daemon-kubelet 2>&1 || true
+snapctl stop ${SNAP_NAME}.daemon-docker 2>&1 || true
+
+# TODO: Make this configurable
+pod_cidr="10.1.0.1/16"
+iptables -D FORWARD -s "$pod_cidr" -m comment --comment "generated for MicroK8s pods" -j ACCEPT || true
+iptables -D FORWARD -d "$pod_cidr" -m comment --comment "generated for MicroK8s pods" -j ACCEPT || true
+
+snapctl stop ${SNAP_NAME}.daemon-containerd 2>&1 || true
+# wait for containerd to stop its processes or we will be getting a umount error
+# because the mount points are busy
+sleep 10
+
+# Clean the container location so we do not snapshot it.
+rm -rf ${SNAP_COMMON}/var/lib/containerd/* || true
+rm -rf ${SNAP_COMMON}/run/containerd/* || true
+
+(cat /proc/mounts | grep ${SNAP_COMMON}/var/lib/kubelet/pods | cut -d ' ' -f 2 | xargs umount -l) || true
+# in case this is a pre root-dir fix deployment
+(cat /proc/mounts | grep ${SNAP_COMMON}/pods | cut -d ' ' -f 2 | xargs umount -l) || true
+(cat /proc/mounts | grep ${SNAP_COMMON}/var/lib/containerd | cut -d ' ' -f 2 | xargs umount -l) || true
+(cat /proc/mounts | grep ${SNAP_COMMON}/run/containerd | cut -d ' ' -f 2 | xargs umount) || true
+(cat /proc/mounts | grep ${SNAP_COMMON}/var/lib/docker | cut -d ' ' -f 2 | xargs umount -l) || true
+(cat /proc/mounts | grep ${SNAP_COMMON}/var/run/docker | cut -d ' ' -f 2 | xargs umount) || true
+(cat /proc/mounts | grep ${SNAP_COMMON}/var/lib/kubelet | cut -d ' ' -f 2 | xargs umount) || true
+
+if $SNAP/sbin/ip link show cni0
+then
+  $SNAP/sbin/ip link delete cni0
+fi

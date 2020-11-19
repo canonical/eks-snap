@@ -1,0 +1,57 @@
+#!/bin/bash
+
+set -ex
+
+# Re-exec outside of apparmor confinement
+if [ -d /sys/kernel/security/apparmor ] && [ "$(cat /proc/self/attr/current)" != "unconfined" ]; then
+    exec aa-exec -p unconfined -- "$0" "$@"
+fi
+
+export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH"
+ARCH="$($SNAP/bin/uname -m)"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$SNAP/lib:$SNAP/usr/lib:$SNAP/lib/$ARCH-linux-gnu:$SNAP/usr/lib/$ARCH-linux-gnu"
+export LD_LIBRARY_PATH=$SNAP_LIBRARY_PATH:$LD_LIBRARY_PATH
+export XDG_RUNTIME_DIR="${SNAP_COMMON}/run"
+mkdir -p "${XDG_RUNTIME_DIR}"
+
+source $SNAP/actions/common/utils.sh
+
+if [ -d "/etc/apparmor.d" ]; then
+  echo "Using a default profile template"
+  cp ${SNAP}/containerd-profile /etc/apparmor.d/cri-containerd.apparmor.d
+  echo "Reloading AppArmor profiles"
+  if ! service apparmor reload
+  then
+    echo "AppArmor profiles loading failed. AppArmor may be unavailable on this host."
+  fi
+fi
+
+app=containerd
+
+RUNTIME="runc"
+
+SNAPSHOTTER=$(snapshotter)
+
+sed 's@${SNAP}@'"${SNAP}"'@g;s@${SNAP_DATA}@'"${SNAP_DATA}"'@g;s@${SNAPSHOTTER}@'"${SNAPSHOTTER}"'@g;s@${RUNTIME}@'"${RUNTIME}"'@g' $SNAP_DATA/args/containerd-template.toml > $SNAP_DATA/args/containerd.toml
+
+# This is really the only way I could find to get the args passed in correctly. WTF
+declare -a args="($(cat $SNAP_DATA/args/$app))"
+set -a
+. "${SNAP_DATA}/args/${app}-env"
+set +a
+
+# wait up to two minutes for the default network interface to appear.
+n=0
+until [ $n -ge 20 ]
+do
+  ip route | grep default &> /dev/null && break
+  ip -6 route | grep default &> /dev/null && break
+  echo "Waiting for default route to appear. (attempt $n)"
+  n=$[$n+1]
+  sleep 6
+done
+
+# Set the path to the Cilium socket correctly for CNI
+export CILIUM_SOCK="${SNAP_DATA}/var/run/cilium/cilium.sock"
+
+exec "$SNAP/bin/$app" "${args[@]}"

@@ -1,0 +1,399 @@
+name: eks
+version-script: |
+  . build-scripts/set-env-variables.sh > /dev/null
+  echo $KUBE_VERSION
+version: "latest"
+summary: Kubernetes for Amazon
+description: |-
+ This snap deploys Kubernetes using the EKS specifications.
+
+grade: stable
+confinement: classic
+base: core
+
+apps:
+  eks:
+    command: microk8s.wrapper
+  daemon-containerd:
+    command: run-containerd-with-args
+    daemon: simple
+  daemon-apiserver:
+    command: run-apiserver-with-args
+    daemon: simple
+  daemon-apiserver-kicker:
+    command: apiservice-kicker
+    daemon: simple
+  daemon-control-plane-kicker:
+    command: control-plane-kicker
+    daemon: simple
+  daemon-cluster-agent:
+    command: run-cluster-agent-with-args
+    daemon: simple
+  daemon-controller-manager:
+    command: run-with-config-args kube-controller-manager
+    daemon: simple
+  daemon-scheduler:
+    command: run-with-config-args kube-scheduler
+    daemon: simple
+  daemon-kubelet:
+    command: run-with-config-args kubelet
+    daemon: simple
+  daemon-proxy:
+    command: run-with-config-args kube-proxy
+    daemon: simple
+  kubectl:
+    command: microk8s-kubectl.wrapper
+    completer: kubectl.bash
+  add-node:
+    command: microk8s-add-node.wrapper
+  refresh-certs:
+    command: microk8s-refresh-certs.wrapper
+  join:
+    command: microk8s-join.wrapper
+  remove-node:
+    command: microk8s-remove-node.wrapper
+  leave:
+    command: microk8s-leave.wrapper
+  ctr:
+    command: microk8s-ctr.wrapper
+  inspect:
+    command: sudo SNAP_DATA=${SNAP_DATA} ${SNAP}/inspect.sh
+  start:
+    command: microk8s-start.wrapper
+  stop:
+    command: microk8s-stop.wrapper
+  status:
+    command: microk8s-status.wrapper
+  config:
+    command: microk8s-config.wrapper
+  reset:
+    command: microk8s-reset.wrapper
+  dbctl:
+    command: microk8s-dbctl.wrapper
+
+parts:
+  libco:
+    source: https://github.com/canonical/libco
+    build-attributes: [no-patchelf]
+    source-type: git
+    plugin: make
+    organize:
+      usr/lib/: lib/
+    prime:
+      - lib/libco*so*
+
+  raft:
+    source: https://github.com/canonical/raft
+    build-attributes: [no-patchelf]
+    source-type: git
+    plugin: autotools
+    configflags:
+      - --enable-debug  
+    stage-packages:
+      - libuv1
+    organize:
+      usr/lib/: lib/
+      include/: usr/include/
+    prime:
+      - lib/libraft*so*
+      - usr/include/
+
+  sqlite:
+    source: https://github.com/sqlite/sqlite
+    source-type: git
+    source-depth: 1
+    source-tag: version-3.33.0
+    build-attributes: [no-patchelf]
+    plugin: autotools
+    build-packages:
+      - tcl
+    override-build: |-
+      set -ex
+      git log -1 --format=format:%ci%n | sed -e 's/ [-+].*$//;s/ /T/;s/^/D /' > manifest
+      git log -1 --format=format:%H > manifest.uuid
+      cp /usr/share/misc/config.guess .
+      cp /usr/share/misc/config.sub .
+      autoreconf -f -i
+      set +ex
+      snapcraftctl build
+    organize:
+      include/: usr/include/
+    prime:
+      - bin/sqlite3
+      - lib/libsqlite3*so*
+      - usr/include/
+
+  dqlite:
+    after:
+      - libco
+      - raft
+      - sqlite
+    source: https://github.com/canonical/dqlite
+    build-attributes: [no-patchelf]
+    source-type: git
+    plugin: autotools
+    configflags:
+      - --enable-debug       
+    stage-packages:
+      - libuv1
+    build-packages:
+      - libuv1-dev
+      - pkg-config
+    organize:
+      usr/lib/: lib/
+      include/: usr/include/
+    prime:
+      - lib/libdqlite*so*
+      - lib/*/libuv*
+      - usr/include/
+
+  dqlite-client:
+    build-snaps: [go]
+    after: [sqlite, dqlite]
+    source: https://github.com/canonical/go-dqlite
+    source-type: git
+    plugin: go
+    go-channel: 1.15/stable
+    build-packages:
+      - libsqlite3-dev
+    go-importpath: github.com/canonical/go-dqlite
+    override-build: |
+      set -eux
+      snap refresh go --channel=1.15/stable || true
+      go version
+      export GOPATH=${SNAPCRAFT_STAGE}
+      CGO_CFLAGS="-I${SNAPCRAFT_STAGE}/usr/include/" CGO_LDFLAGS="-L${SNAPCRAFT_STAGE}/lib" go get -tags libsqlite3 github.com/canonical/go-dqlite/cmd/dqlite
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+      cp $GOPATH/bin/dqlite $SNAPCRAFT_PART_INSTALL/bin/
+
+  cni:
+    plugin: dump
+    source: build-scripts/
+    override-build: |
+      . ./set-env-variables.sh
+      curl -LO https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-$KUBE_ARCH-${CNI_VERSION}.tgz
+      mkdir cni
+      tar -xzvf cni-*.tgz -C cni/
+      snapcraftctl build
+    organize:
+      ./cni/*: opt/cni/bin/
+    filesets:
+      bins: [ ./opt/cni/bin/* ]
+    stage: [ $bins ]
+
+  k8s-binaries:
+    after: [dqlite]
+    build-snaps: [go]
+    plugin: dump
+    build-attributes: [no-patchelf]
+    source: build-scripts/
+    build-packages:
+      - build-essential
+      - curl
+      - git
+    override-build: |
+      set -eux
+      . ./set-env-variables.sh
+
+      # if "${KUBE_SNAP_BINS}" exist we have to use the binaries from there
+      # if "${KUBE_SNAP_BINS}" does not exist but it is set we will put the k8s binaries there
+      # if "${KUBE_SNAP_BINS}" does not exist and it is not set we do not need to keep the created binaries
+      if [ ! -e "${KUBE_SNAP_BINS}" ]; then
+        if [ -z "${KUBE_SNAP_BINS}" ]; then
+          . ./set-env-binaries-location.sh
+        fi
+        echo "Building k8s binaries"
+        . ./build-k8s-binaries.sh
+      else
+        echo "Binaries provided in $KUBE_SNAP_BINS"
+      fi
+      mkdir bins/
+      cp build/kube_bins/$KUBERNETES_TAG/$KUBE_ARCH/* bins/
+
+      # Add bash completion for microk8s kubectl.
+      bins/kubectl completion bash | sed "s/complete -o default -F __start_kubectl kubectl/complete -o default -F __start_kubectl microk8s kubectl/g" | sed "s/complete -o default -o nospace -F __start_kubectl kubectl/complete -o default -o nospace -F __start_kubectl kubectl/g" > kubectl.bash
+      bins/kubectl completion bash | sed "s/complete -o default -F __start_kubectl kubectl/complete -o default -F __start_kubectl microk8s.kubectl/g" | sed "s/complete -o default -o nospace -F __start_kubectl kubectl/complete -o default -o nospace -F __start_kubectl kubectl/g" > kubectl.bash
+      snapcraftctl build
+    organize:
+      bins/*: .
+    stage:
+      - kube-apiserver
+      - kube-controller-manager
+      - kube-proxy
+      - kube-scheduler
+      - kubectl
+      - kubectl.bash
+      - kubelet
+
+  libnftnl:
+    plugin: autotools
+    source: https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.0.9.tar.bz2
+    build-packages:
+    - libjansson-dev
+    - libmnl-dev
+
+  iptables:
+    after:
+    - libnftnl
+    source: https://www.netfilter.org/projects/iptables/files/iptables-1.6.1.tar.bz2
+    plugin: autotools
+    build-packages:
+    - bison
+    - flex
+    - libmnl-dev
+    - libnfnetlink-dev
+    - libnetfilter-conntrack3
+    - libnetfilter-conntrack-dev
+    configflags:
+    - "--disable-shared"
+    - "--enable-static"
+    prime: [ -bin/iptables-xml ]
+
+  migrator:
+    build-snaps: [go]
+    source: https://github.com/ktsakalozos/go-migrator
+    source-type: git
+    plugin: go
+    go-channel: 1.15/stable
+    go-importpath: github.com/ktsakalozos/go-migrator
+    build-packages:
+      - gcc
+    prime:
+      - bin/migrator
+
+  containerd:
+    build-snaps: [go]
+    after: [iptables]
+    source: https://github.com/containerd/containerd
+    source-type: git
+    plugin: go
+    go-channel: 1.15/stable
+    go-importpath: github.com/containerd/containerd
+    build-packages:
+    - btrfs-tools
+    - libseccomp-dev
+    override-build: |
+      set -eux
+      . $SNAPCRAFT_PROJECT_DIR/build-scripts/set-env-variables.sh
+      snap refresh go --channel=1.15/stable || true
+      go version
+      export GOPATH=$(realpath ../go)
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+
+      # Build runc
+      go get -d github.com/opencontainers/runc
+      (
+        cd $GOPATH/src/github.com/opencontainers/runc
+        git checkout ${RUNC_COMMIT}
+        make BUILDTAGS='seccomp apparmor'
+      )
+      cp $GOPATH/src/github.com/opencontainers/runc/runc $SNAPCRAFT_PART_INSTALL/bin/
+
+      # Build containerd
+      go get -d github.com/containerd/containerd
+      (
+        cd $GOPATH/src/github.com/containerd/containerd
+        git checkout ${CONTAINERD_COMMIT}
+        # building the btrfs driver can be disabled via the
+        # build tag no_btrfs, removing this dependency
+        make
+      )
+      cp $GOPATH/src/github.com/containerd/containerd/bin/* $SNAPCRAFT_PART_INSTALL/bin/
+      rm $SNAPCRAFT_PART_INSTALL/bin/containerd-stress
+
+      # Assemble the snap
+      # snapcraftctl build
+    organize:
+      containerd/install/bin/*: bin/
+    stage-packages:
+    - libnss-myhostname
+    - libnss-resolve
+    - libnss-mymachines
+    - conntrack
+    - curl
+    - aufs-tools
+    - gawk
+    - sed
+    - socat
+    - grep
+    - jq
+    - libssl1.0.0
+    - coreutils
+    - hostname
+    - diffutils
+    - squashfs-tools
+    - tar
+    stage:
+    - -sbin/xtables-multi
+    - -sbin/iptables*
+    - -lib/xtables
+
+  cluster-agent:
+    plugin: python
+    python-version: python3
+    source: .
+    python-packages:
+    - flask
+    - PyYAML
+    - netifaces
+    stage-packages:
+    - python3-openssl
+    - openssl
+    - python3-requests
+    - gunicorn3
+    - python3-click
+    - python3-dateutil
+
+  microk8s:
+    after: [containerd, dqlite, k8s-binaries]
+    plugin: dump
+    build-attributes: [no-patchelf]
+    build-packages:
+    - make
+    - mercurial
+    - git
+    - rsync
+    - openssl
+    - file
+    - dpkg
+    stage-packages:
+    - libatm1
+    - net-tools
+    - util-linux
+    - zfsutils-linux
+    - iproute2
+    source: .
+    prime:
+      - -README*
+      - -tests*
+      - -docs*
+      - -build*
+      - -go*
+      - -snap*
+    override-build: |
+      set -eux
+
+      . build-scripts/set-env-variables.sh
+
+      echo "Setting default daemon configs"
+      cp -r $KUBE_SNAP_ROOT/microk8s-resources/default-args .
+
+      echo "Building certs"
+      cp -r $KUBE_SNAP_ROOT/microk8s-resources/certs .
+      cp -r $KUBE_SNAP_ROOT/microk8s-resources/certs-beta .
+
+      echo "Preparing containerd"
+      cp $KUBE_SNAP_ROOT/microk8s-resources/containerd-profile .
+
+      echo "Preparing user config"
+      cp $KUBE_SNAP_ROOT/microk8s-resources/client.config.template .
+
+      echo "Creating commands and wrappers"
+      cp $KUBE_SNAP_ROOT/microk8s-resources/wrappers/* .
+
+      cp -r $KUBE_SNAP_ROOT/microk8s-resources/actions .
+
+      echo "Creating inspect hook"
+      cp $KUBE_SNAP_ROOT/scripts/inspect.sh .
+
+      snapcraftctl build
