@@ -41,12 +41,8 @@ lxc exec test-build -- git clone https://github.com/ubuntu/microk8s
 
 We can then set the following environment variables prior to building:
  - KUBE_VERSION: kubernetes release to package. Defaults to latest stable.
- - ETCD_VERSION: version of etcd.
  - CNI_VERSION: version of CNI tools.
  - KUBE_TRACK: kubernetes release series (e.g., 1.10) to package. Defaults to latest stable.
- - ISTIO_VERSION: istio release.
- - KNATIVE_SERVING_VERSION: Knative Serving release.
- - KNATIVE_EVENTING_VERSION: Knative Eventing release.
  - RUNC_COMMIT: the commit hash from which to build runc
  - CONTAINERD_COMMIT: the commit hash from which to build containerd
  - KUBERNETES_REPOSITORY: build the kubernetes binaries from this repository instead of getting them from upstream
@@ -70,7 +66,6 @@ snap install microk8s_latest_amd64.snap --classic --dangerous
 
 ## Assembling the Calico CNI manifest
 
-The calico CNI manifest can be found under `upgrade-scripts/000-switch-to-calico/resources/calico.yaml`.
 Building the manifest is subject to the upstream calico project k8s installation process.
 At the time of the v3.13.2 release. The `calico.yaml` manifest is a slightly modified version of:
 `https://docs.projectcalico.org/manifests/calico.yaml`:
