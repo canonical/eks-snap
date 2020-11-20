@@ -58,6 +58,15 @@ do
       fi
     fi
 
+    # Enable dns
+    if ! [ -e "${SNAP_DATA}/var/lock/dns-loaded" ]
+    then
+      if "$SNAP/actions/enable.dns.sh"
+      then
+        touch "${SNAP_DATA}/var/lock/dns-loaded"
+      fi
+    fi
+
     # If no local-registry-hosting documentation has been installed,
     # install a help guide that points to the eks registry docs.
     #
