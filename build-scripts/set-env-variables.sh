@@ -21,7 +21,7 @@ export KUBERNETES_REPOSITORY="${KUBERNETES_REPOSITORY:-github.com/kubernetes/kub
 
 export KUBE_TRACK="${KUBE_TRACK:-}"
 
-export KUBE_VERSION="${KUBE_VERSION:-}"
+export KUBE_VERSION="${KUBE_VERSION:-v1.18.9}"
 export KUBE_SNAP_BINS="${KUBE_SNAP_BINS:-}"
 if [ -e "$KUBE_SNAP_BINS/version" ]; then
   export KUBE_VERSION=`cat $KUBE_SNAP_BINS/version`
@@ -43,6 +43,9 @@ export KUBERNETES_TAG="${KUBE_VERSION}"
 
 export KUBE_SNAP_ROOT="$(readlink -f .)"
 
+export EKS_REPO="${EKS_REPO:-https://beta.cdn.model-rocket.aws.dev}"
+export EKS_SPEC="${EKS_SPEC:-kubernetes-1-18/kubernetes-1-18-eks-1.yaml}"
+
 echo "Building with:"
 echo "KUBE_VERSION=${KUBE_VERSION}"
 echo "CNI_VERSION=${CNI_VERSION}"
@@ -52,3 +55,5 @@ echo "RUNC_COMMIT=${RUNC_COMMIT}"
 echo "CONTAINERD_COMMIT=${CONTAINERD_COMMIT}"
 echo "KUBERNETES_REPOSITORY=${KUBERNETES_REPOSITORY}"
 echo "KUBERNETES_TAG=${KUBERNETES_TAG}"
+echo "EKS_REPO=${EKS_REPO}"
+echo "EKS_SPEC=${EKS_SPEC}"

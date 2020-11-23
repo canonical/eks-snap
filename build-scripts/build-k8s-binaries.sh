@@ -2,12 +2,15 @@
 set -eux
 
 echo "Building k8s binaries from $KUBERNETES_REPOSITORY tag $KUBERNETES_TAG"
-apps="kubectl kube-apiserver kube-controller-manager kube-scheduler kubelet kube-proxy"
-path_apps="cmd/kubectl cmd/kube-apiserver cmd/kube-controller-manager cmd/kube-scheduler cmd/kubelet cmd/kube-proxy"
+build_apps="kube-apiserver"
+fetch_apps="kubectl kube-controller-manager kube-scheduler kubelet kube-proxy"
+build_path_apps="cmd/kube-apiserver"
+fetch_path_apps="cmd/kubectl cmd/kube-controller-manager cmd/kube-scheduler cmd/kubelet cmd/kube-proxy"
 export KUBE_SNAP_BINS="build/kube_bins/$KUBE_VERSION"
 mkdir -p $KUBE_SNAP_BINS/$KUBE_ARCH
 echo $KUBE_VERSION > $KUBE_SNAP_BINS/version
 
+# Build the apiserver
 export GOPATH=$SNAPCRAFT_PART_BUILD/go
 
 rm -rf $GOPATH
@@ -33,7 +36,7 @@ git clone --depth 1 https://github.com/kubernetes/kubernetes $GOPATH/src/github.
 
   rm -rf $GOPATH/src/$KUBERNETES_REPOSITORY/_output/
   make clean
-  for app in ${path_apps}
+  for app in ${build_path_apps}
   do
     if [ "$app" = "cmd/kube-apiserver" ]
     then
@@ -43,8 +46,33 @@ git clone --depth 1 https://github.com/kubernetes/kubernetes $GOPATH/src/github.
     fi
   done
 )
-for app in $apps; do
+for app in $build_apps; do
   cp $GOPATH/src/$KUBERNETES_REPOSITORY/_output/bin/$app $KUBE_SNAP_BINS/$KUBE_ARCH/
 done
 
 rm -rf $GOPATH/src/$KUBERNETES_REPOSITORY/_output/
+
+# Download eks k8s binaries
+rm -rf eks-d-tmp/
+mkdir eks-d-tmp/
+(cd eks-d-tmp/
+  wget $EKS_REPO/$EKS_SPEC -O spec.yaml
+  K8S_SRV=$(grep -e "path.*kubernetes-server-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
+  K8S_NODE=$(grep -e "path.*kubernetes-server-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
+  K8S_CLIENT=$(grep -e "path.*kubernetes-client-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
+
+  wget $EKS_REPO/$K8S_SRV -O srv.tar.gz
+  wget $EKS_REPO/$K8S_NODE -O node.tar.gz
+  wget $EKS_REPO/$K8S_CLIENT -O client.tar.gz
+
+  tar -zxvf srv.tar.gz
+  tar -zxvf node.tar.gz
+  tar -zxvf client.tar.gz
+)
+
+mkdir k8s
+find eks-d-tmp -name kube-proxy -exec cp {} $KUBE_SNAP_BINS/$KUBE_ARCH/ \;
+find eks-d-tmp -name kubelet -exec cp {} $KUBE_SNAP_BINS/$KUBE_ARCH/ \;
+find eks-d-tmp -name kube-controller-manager -exec cp {} $KUBE_SNAP_BINS/$KUBE_ARCH/ \;
+find eks-d-tmp -name kube-scheduler -exec cp {} $KUBE_SNAP_BINS/$KUBE_ARCH/ \;
+find eks-d-tmp -name kubectl -exec cp {} $KUBE_SNAP_BINS/$KUBE_ARCH/ \;

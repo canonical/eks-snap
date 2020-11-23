@@ -169,11 +169,15 @@ parts:
   cni:
     plugin: dump
     source: build-scripts/
+    build-packages:
+      - wget
     override-build: |
       . ./set-env-variables.sh
-      curl -LO https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-$KUBE_ARCH-${CNI_VERSION}.tgz
+      wget $EKS_REPO/$EKS_SPEC -O spec.yaml
+      CNI=$(grep -e "path.*cni-plugins-linux-$ARCH.*.tar.gz" spec.yaml | awk '{print $2}')
+      wget $EKS_REPO/$CNI -O cni.tar.gz
       mkdir cni
-      tar -xzvf cni-*.tgz -C cni/
+      tar -xzvf cni.tar.gz -C cni/
       snapcraftctl build
     organize:
       ./cni/*: opt/cni/bin/
@@ -190,6 +194,7 @@ parts:
     build-packages:
       - build-essential
       - curl
+      - wget
       - git
     override-build: |
       set -eux
