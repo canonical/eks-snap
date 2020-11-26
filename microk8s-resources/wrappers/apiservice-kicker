@@ -67,20 +67,13 @@ do
       fi
     fi
 
-    # If no local-registry-hosting documentation has been installed,
-    # install a help guide that points to the eks registry docs.
-    #
-    # Wait until the apiserver is up and is successfully responding to
-    # namespace checks before we check for the registry configmap.
-    if [ $installed_registry_help -eq 0 ] &&
-       snapctl services eks.daemon-apiserver | grep active &> /dev/null &&
-       "$SNAP/kubectl" "--kubeconfig=$SNAP_DATA/credentials/client.config" get namespace kube-public &> /dev/null
+    # Enable dns
+    if ! [ -e "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded" ]
     then
-      if ! "$SNAP/kubectl" "--kubeconfig=$SNAP_DATA/credentials/client.config" get configmap local-registry-hosting -n kube-public &> /dev/null
+      if "$SNAP/actions/enable.aws-iam-authentication.sh"
       then
-        use_manifest registry-help apply
+        touch "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded"
       fi
-      
-      installed_registry_help=1
     fi
+
 done
