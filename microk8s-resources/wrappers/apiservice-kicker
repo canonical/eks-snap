@@ -58,6 +58,15 @@ do
       fi
     fi
 
+    # Enable RBAC
+    if ! [ -e "${SNAP_DATA}/var/lock/rbac-loaded" ]
+    then
+      if "$SNAP/actions/enable.rbac.sh"
+      then
+        touch "${SNAP_DATA}/var/lock/rbac-loaded"
+      fi
+    fi
+
     # Enable dns
     if ! [ -e "${SNAP_DATA}/var/lock/dns-loaded" ]
     then
@@ -67,12 +76,22 @@ do
       fi
     fi
 
-    # Enable dns
-    if ! [ -e "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded" ]
+    if [ -f /sys/hypervisor/uuid ]
     then
-      if "$SNAP/actions/enable.aws-iam-authentication.sh"
+      EC2VM=$(head -c 3 /sys/hypervisor/uuid)
+      if [ "$EC2VM" == "ec2" ];
       then
-        touch "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded"
+        echo "EC2 node detected"
+
+        # Enable iam authenticator
+        if ! [ -e "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded" ]
+        then
+          if "$SNAP/actions/enable.aws-iam-authentication.sh"
+          then
+            touch "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded"
+          fi
+        fi
+
       fi
     fi
 
