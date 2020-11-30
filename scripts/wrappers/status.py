@@ -151,9 +151,7 @@ if __name__ == '__main__':
     is_cluster_locked()
 
     # initiate the parser with a description
-    parser = argparse.ArgumentParser(
-        description='eks cluster status check.', prog='eks status'
-    )
+    parser = argparse.ArgumentParser(description='eks cluster status check.', prog='eks status')
     parser.add_argument(
         "--format",
         help="print cluster and addon status, output can be in yaml, pretty or short",

@@ -428,9 +428,7 @@ def configure():
             if "restart" in service and service["restart"]:
                 service_name = get_service_name(service["name"])
                 print("restarting {}".format(service["name"]))
-                subprocess.check_call(
-                    "snapctl restart eks.daemon-{}".format(service_name).split()
-                )
+                subprocess.check_call("snapctl restart eks.daemon-{}".format(service_name).split())
 
     if "addon" in configuration:
         for addon in configuration["addon"]:
