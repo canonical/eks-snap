@@ -36,7 +36,6 @@ def print_short(isReady, enabled_addons, disabled_addons):
 
 
 def print_pretty(isReady, enabled_addons, disabled_addons):
-    console_formatter = "{:>3} {:<20} # {}"
     if isReady:
         print("eks is running")
         if not is_ha_enabled():
