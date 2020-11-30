@@ -9,7 +9,7 @@ description: |-
   install and a second command to cluster, the EKS snap gives you an EKS
   Distro on rails anywhere you can get Ubuntu machines.
 
-  ** Install **
+  **Install**
 
   On any recent Ubuntu machine, or another Linux distribution with [snap
   support](https://snapcraft.io/docs/installing-snapd):
@@ -19,7 +19,7 @@ description: |-
   To form a multi-node cluster call `eks add-node` on any existing cluster
   member to get a token, followed by `eks join <token>` on the new machine.
 
-  ** Default components **
+  **Default components**
 
   For optimal compatibility with EKS, this Kubernetes distro will launch a
   very specific set of component services automatically. These provide a
@@ -37,7 +37,7 @@ description: |-
 
    * `aws-iam-authenticator` - login to your cluster with AWS IAM credentials
 
-  ** Stripped down MicroK8s with EKS components **
+  **Stripped down MicroK8s with EKS components**
 
   This EKS Distro is based on [MicroK8s](https://snapcraft.io/microk8s). It
   has a stripped down set of addons and is designed to feel great for AWS
