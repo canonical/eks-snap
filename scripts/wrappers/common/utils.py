@@ -140,9 +140,7 @@ def exit_if_no_permission():
     if not os.access(clientConfigFile, os.R_OK):
         print("Insufficient permissions to access MicroK8s.")
         print(
-            "You can either try again with sudo or add the user {} to the 'eks' group:".format(
-                user
-            )
+            "You can either try again with sudo or add the user {} to the 'eks' group:".format(user)
         )
         print("")
         print("    sudo usermod -a -G eks {}".format(user))

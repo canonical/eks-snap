@@ -36,7 +36,6 @@ def print_short(isReady, enabled_addons, disabled_addons):
 
 
 def print_pretty(isReady, enabled_addons, disabled_addons):
-    console_formatter = "{:>3} {:<20} # {}"
     if isReady:
         print("eks is running")
         if not is_ha_enabled():
@@ -151,9 +150,7 @@ if __name__ == '__main__':
     is_cluster_locked()
 
     # initiate the parser with a description
-    parser = argparse.ArgumentParser(
-        description='eks cluster status check.', prog='eks status'
-    )
+    parser = argparse.ArgumentParser(description='eks cluster status check.', prog='eks status')
     parser.add_argument(
         "--format",
         help="print cluster and addon status, output can be in yaml, pretty or short",

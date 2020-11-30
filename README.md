@@ -15,10 +15,8 @@ support](https://snapcraft.io/docs/installing-snapd):
 sudo snap install eks
 ```
 
-Now you can either initialize a new cluster with `eks init` or you can join
-an existing cluster with the combination of `eks add-node` on any existing
-cluster member to get a token, followed by `eks join <token>` on the new
-machine.
+To form a multi-node cluster call `eks add-node` on any existing cluster
+member to get a token, followed by `eks join <token>` on the new machine.
 
 # Default components
 
@@ -29,20 +27,14 @@ on AWS itself.
 
 When you initialize the cluster, it will also fetch and enable:
 
- * `aws-iam-authenticator` - login to your cluster with AWS IAM credentials
  * `coredns` - DNS services for services on this EKS cluster
+ * `metrics-server` - K8s Metrics Server for API access
+ * `storage` - Storage class; allocates storage from host directory
 
-The EKS snap will automatically detect if it is on AWS or not, and launch a
-set of services accordingly.
+The EKS snap will automatically detect if it is on AWS, and if so it will also
+enable:
 
-On AWS:
-
- * `storage` -
-
-On other substrates:
-
- * `hostpath` - use local host filesystem for storage
-
+ * `aws-iam-authenticator` - login to your cluster with AWS IAM credentials
 
 ## Stripped down MicroK8s with EKS components
 
