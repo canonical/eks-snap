@@ -76,6 +76,25 @@ do
       fi
     fi
 
+    # Enable metrics-server
+    if ! [ -e "${SNAP_DATA}/var/lock/metrics-server-loaded" ]
+    then
+      if "$SNAP/actions/enable.metrics-server.sh"
+      then
+        touch "${SNAP_DATA}/var/lock/metrics-server-loaded"
+      fi
+    fi
+
+    # Enable storage
+    if ! [ -e "${SNAP_DATA}/var/lock/storage-loaded" ]
+    then
+      if "$SNAP/actions/enable.storage.sh"
+      then
+        touch "${SNAP_DATA}/var/lock/storage-loaded"
+      fi
+    fi
+
+    # Enable AWS specific 'addons'
     if [ -f /sys/hypervisor/uuid ]
     then
       EC2VM=$(head -c 3 /sys/hypervisor/uuid)
