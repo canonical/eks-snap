@@ -7,7 +7,7 @@
 --fail-swap-on=false
 --cni-conf-dir=${SNAP_DATA}/args/cni-network/
 --cni-bin-dir=${SNAP_DATA}/opt/cni/bin/
---feature-gates=DevicePlugins=true
+--feature-gates=DevicePlugins=true,CSINodeInfo=true,CSIDriverRegistry=true,CSIBlockVolume=true
 --eviction-hard="memory.available<100Mi,nodefs.available<1Gi,imagefs.available<1Gi"
 --container-runtime=remote
 --container-runtime-endpoint=${SNAP_COMMON}/run/containerd.sock
