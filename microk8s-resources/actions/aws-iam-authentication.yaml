@@ -227,9 +227,7 @@ spec:
       # - output (output kubeconfig to plug into your apiserver configuration, mounted from the host)
       containers:
       - name: aws-iam-authenticator
-        image: rocks.canonical.com:5000/cdk/aws-iam-authenticator:v0.4.0_ck1
-        # TODO update this to the v0.5.2 image
-        # image: 602401143452.dkr.ecr.us-west-2.amazonaws.com/amazon/aws-iam-authenticator:v0.5.2
+        image: public.ecr.aws/eks-distro/kubernetes-sigs/aws-iam-authenticator:v0.5.2-eks-1-18-1
         args:
         - server
         # uncomment if using EKS-Style ConfigMap
