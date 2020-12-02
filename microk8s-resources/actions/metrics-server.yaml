@@ -83,7 +83,7 @@ spec:
         emptyDir: {}
       containers:
       - name: metrics-server
-        image: k8s.gcr.io/metrics-server-$ARCH:v0.3.6
+        image: public.ecr.aws/eks-distro/kubernetes-sigs/metrics-server:v0.4.0-eks-1-18-1
         imagePullPolicy: IfNotPresent
         args:
           - --cert-dir=/tmp
