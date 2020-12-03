@@ -379,7 +379,6 @@ parts:
     - flask
     - PyYAML
     - netifaces
-    - shutil
     stage-packages:
     - python3-openssl
     - openssl
