@@ -103,6 +103,15 @@ do
       fi
     fi
 
+    # Enable EFS
+    if [ -e "${SNAP_DATA}/var/lock/efs-ready" ]
+    then
+      if "$SNAP/actions/enable.aws-efs-csi-driver.sh"
+      then
+        rm "${SNAP_DATA}/var/lock/efs-ready"
+      fi
+    fi
+
     # Enable AWS specific 'addons'
     if [ -f /sys/hypervisor/uuid ]
     then

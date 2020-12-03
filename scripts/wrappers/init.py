@@ -12,11 +12,9 @@ def init():
     Initialise the EKS cluster
     """
     if click.confirm('Do you want to enable EBS support?'):
-        click.echo('')
         click.echo('A user with proper IAM permissions need to be specified. See ')
         key = click.prompt('The access key id of the authorised user')
         access = click.prompt('The secret access key of the authorised user')
-        click.echo('Enabling EBS')
         source_dir = "{}/actions/aws-ebs-csi-driver".format(os.getenv('SNAP'))
         destination_dir = "{}/actions/aws-ebs-csi-driver".format(os.getenv('SNAP_DATA'))
         shutil.rmtree(destination_dir, ignore_errors=True)
@@ -30,6 +28,10 @@ def init():
             with open(secrets_file, "w+") as s:
                 s.write(data)
         Path('{}/var/lock/ebs-ready'.format(os.getenv('SNAP_DATA'))).touch()
+        click.echo('')
+    if click.confirm('Do you want to enable EFS support?'):
+        Path('{}/var/lock/efs-ready'.format(os.getenv('SNAP_DATA'))).touch()
+        click.echo('')
 
 
 if __name__ == '__main__':
