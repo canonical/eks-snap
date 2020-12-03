@@ -94,6 +94,15 @@ do
       fi
     fi
 
+    # Enable EBS
+    if [ -e "${SNAP_DATA}/var/lock/ebs-ready" ]
+    then
+      if "$SNAP/actions/enable.aws-ebs-csi-driver.sh"
+      then
+        rm "${SNAP_DATA}/var/lock/ebs-ready"
+      fi
+    fi
+
     # Enable AWS specific 'addons'
     if [ -f /sys/hypervisor/uuid ]
     then

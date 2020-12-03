@@ -88,6 +88,8 @@ apps:
     command: microk8s-refresh-certs.wrapper
   join:
     command: microk8s-join.wrapper
+  init:
+    command: microk8s-init.wrapper
   remove-node:
     command: microk8s-remove-node.wrapper
   leave:
@@ -377,6 +379,7 @@ parts:
     - flask
     - PyYAML
     - netifaces
+    - shutil
     stage-packages:
     - python3-openssl
     - openssl
