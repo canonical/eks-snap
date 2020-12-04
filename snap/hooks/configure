@@ -24,6 +24,13 @@ then
   snapctl restart ${SNAP_NAME}.daemon-controller-manager
 fi
 
+if grep -e "\-\-authentication-token-webhook-config-file=/var/snap/eks" ${SNAP_DATA}/args/kube-apiserver
+then
+  echo "Patching aws iam webhook location"
+  "$SNAP/bin/sed" -i 's@authentication-token-webhook-config-file=/var/snap/eks/.*/aws-iam-athenticator/kubeconfig.yaml@authentication-token-webhook-config-file=\${SNAP_DATA}/aws-iam-athenticator/kubeconfig.yaml@g' ${SNAP_DATA}/args/kube-apiserver
+  snapctl restart ${SNAP_NAME}.daemon-apiserver
+fi
+
 #Allow the ability to add external IPs to the csr, by moving the csr.conf.template to SNAP_DATA
 if [ ! -f ${SNAP_DATA}/certs/csr.conf.template ]
 then

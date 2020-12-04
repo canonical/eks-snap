@@ -22,7 +22,7 @@ do
      sleep 5
      echo "Waiting for kubeconfig file to appear."
 done
-refresh_opt_in_config "authentication-token-webhook-config-file" "${SNAP_DATA}/aws-iam-athenticator/kubeconfig.yaml" kube-apiserver
+refresh_opt_in_config "authentication-token-webhook-config-file" "\${SNAP_DATA}/aws-iam-athenticator/kubeconfig.yaml" kube-apiserver
 restart_service apiserver
 
 echo "AWS IAM authentication is enabled"
