@@ -82,7 +82,7 @@ spec:
             - name: ADDRESS
               value: /csi/csi.sock
             - name: DRIVER_REG_SOCK_PATH
-              value: /var/lib/kubelet/plugins/ebs.csi.aws.com/csi.sock
+              value: /var/snap/eks/common/var/lib/kubelet/plugins/ebs.csi.aws.com/csi.sock
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
