@@ -86,22 +86,22 @@ spec:
       volumes:
         - name: kubelet-dir
           hostPath:
-            path: /var/lib/kubelet
+            path: /var/snap/eks/common/var/lib/kubelet
             type: Directory
         - name: registration-dir
           hostPath:
-            path: /var/lib/kubelet/plugins_registry/
+            path: /var/snap/eks/common/var/lib/kubelet/plugins_registry/
             type: Directory
         - name: plugin-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/efs.csi.aws.com/
+            path: /var/snap/eks/common/var/lib/kubelet/plugins/efs.csi.aws.com/
             type: DirectoryOrCreate
         - name: efs-state-dir
           hostPath:
-            path: /var/run/efs
+            path: /var/snap/eks/common/var/run/efs
             type: DirectoryOrCreate
         - name: efs-utils-config
           hostPath:
-            path: /etc/amazon/efs
+            path: /var/snap/eks/common/etc/amazon/efs
             type: DirectoryOrCreate
 

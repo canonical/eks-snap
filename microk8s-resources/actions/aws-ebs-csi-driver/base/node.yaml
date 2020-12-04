@@ -98,15 +98,15 @@ spec:
       volumes:
         - name: kubelet-dir
           hostPath:
-            path: /var/lib/kubelet
+            path: /var/snap/eks/common/var/lib/kubelet
             type: Directory
         - name: plugin-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/ebs.csi.aws.com/
+            path: /var/snap/eks/common/var/lib/kubelet/plugins/ebs.csi.aws.com/
             type: DirectoryOrCreate
         - name: registration-dir
           hostPath:
-            path: /var/lib/kubelet/plugins_registry/
+            path: /var/snap/eks/common/var/lib/kubelet/plugins_registry/
             type: Directory
         - name: device-dir
           hostPath:
