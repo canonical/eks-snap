@@ -8,6 +8,8 @@ echo "Disabling AWS IAM authentication"
 CLUSTERID="$(echo $RANDOM)"
 declare -A map
 map[\$CLUSTERID]="$CLUSTERID"
+AWS_ENV=""
+map[\$AWS_ENV]="$AWS_ENV"
 use_manifest aws-iam-authentication delete "$(declare -p map)"
 
 echo "Configuring the API server"
