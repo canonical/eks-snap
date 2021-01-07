@@ -9,6 +9,7 @@ CLUSTERID="$(echo $RANDOM)"
 declare -A map
 map[\$CLUSTERID]="$CLUSTERID"
 use_manifest aws-iam-authentication delete "$(declare -p map)"
+use_manifest aws-iam-authentication-daemon-local delete "$(declare -p map)"
 
 echo "Configuring the API server"
 skip_opt_in_config "authentication-token-webhook-config-file" kube-apiserver

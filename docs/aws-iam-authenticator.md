@@ -1,6 +1,6 @@
 # User authentication with AWS IAM
 
-On EC2 instances the aws-iam-authenticator is already deployed in the `kube-system` namespace. To complete the
+The aws-iam-authenticator is deployed in the `kube-system` namespace. To complete the
 installation you need to first map AWS to kubernetes users and second setup your kubectl to use the IAM service.
 
 ### Mapping users

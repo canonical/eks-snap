@@ -112,24 +112,11 @@ do
       fi
     fi
 
-    # Enable AWS specific 'addons'
-    if [ -f /sys/hypervisor/uuid ]
+    if ! [ -e "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded" ]
     then
-      EC2VM=$(head -c 3 /sys/hypervisor/uuid)
-      if [ "$EC2VM" == "ec2" ];
+      if "$SNAP/actions/enable.aws-iam-authentication.sh"
       then
-        echo "EC2 node detected"
-
-        # Enable iam authenticator
-        if ! [ -e "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded" ]
-        then
-          if "$SNAP/actions/enable.aws-iam-authentication.sh"
-          then
-            touch "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded"
-          fi
-        fi
-
+        touch "${SNAP_DATA}/var/lock/aws-iam-authenticator-loaded"
       fi
     fi
-
 done
