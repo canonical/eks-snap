@@ -11,6 +11,27 @@ chmod 777 "${SNAP_DATA}/aws-iam-athenticator"
 CLUSTERID="$(echo $RANDOM)"
 declare -A map
 map[\$CLUSTERID]="$CLUSTERID"
+
+# Always set the default region unless we are on AWS
+# TODO make default region configurable
+AWS_ENV="
+        env:
+        - name: AWS_REGION
+          value: us-east-2
+        - name: AWS_DEFAULT_REGION
+          value: us-east-2
+"
+if [ -f /sys/hypervisor/uuid ]
+  then
+  EC2VM=$(head -c 3 /sys/hypervisor/uuid)
+  if [ "$EC2VM" == "ec2" ];
+  then
+    echo "EC2 node detected"
+    AWS_ENV=""
+  fi
+fi
+map[\$AWS_ENV]="$AWS_ENV"
+
 use_manifest aws-iam-authentication apply "$(declare -p map)"
 
 # Always set the default region unless we are on AWS
