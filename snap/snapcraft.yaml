@@ -48,13 +48,17 @@ description: |-
 grade: stable
 confinement: classic
 base: core
+assumes: [snapd2.48.3]
 
 apps:
   eks:
     command: microk8s.wrapper
   daemon-containerd:
     command: run-containerd-with-args
-    daemon: simple
+    daemon: notify
+    stop-mode: sigterm
+    restart-condition: always
+    plugs: [kubernetes-support]
   daemon-apiserver:
     command: run-apiserver-with-args
     daemon: simple
