@@ -57,13 +57,13 @@ rm -rf eks-d-tmp/
 mkdir eks-d-tmp/
 (cd eks-d-tmp/
   wget $EKS_REPO/$EKS_SPEC -O spec.yaml
-  K8S_SRV=$(grep -e "path.*kubernetes-server-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
-  K8S_NODE=$(grep -e "path.*kubernetes-server-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
-  K8S_CLIENT=$(grep -e "path.*kubernetes-client-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
+  K8S_SRV=$(grep -e "artifacts.*kubernetes-server-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
+  K8S_NODE=$(grep -e "artifacts.*kubernetes-server-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
+  K8S_CLIENT=$(grep -e "artifacts.*kubernetes-client-linux-$ARCH.tar.gz" spec.yaml | awk '{print $2}')
 
-  wget $EKS_REPO/$K8S_SRV -O srv.tar.gz
-  wget $EKS_REPO/$K8S_NODE -O node.tar.gz
-  wget $EKS_REPO/$K8S_CLIENT -O client.tar.gz
+  wget $K8S_SRV -O srv.tar.gz
+  wget $K8S_NODE -O node.tar.gz
+  wget $K8S_CLIENT -O client.tar.gz
 
   tar -zxvf srv.tar.gz
   tar -zxvf node.tar.gz

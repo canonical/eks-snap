@@ -203,8 +203,8 @@ parts:
     override-build: |
       . ./set-env-variables.sh
       wget $EKS_REPO/$EKS_SPEC -O spec.yaml
-      CNI=$(grep -e "path.*cni-plugins-linux-$ARCH.*.tar.gz" spec.yaml | awk '{print $2}')
-      wget $EKS_REPO/$CNI -O cni.tar.gz
+      CNI=$(grep -e "artifacts.*cni-plugins-linux-$ARCH.*.tar.gz" spec.yaml | awk '{print $2}')
+      wget $CNI -O cni.tar.gz
       mkdir cni
       tar -xzvf cni.tar.gz -C cni/
       snapcraftctl build
