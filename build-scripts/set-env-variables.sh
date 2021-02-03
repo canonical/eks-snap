@@ -43,7 +43,7 @@ export KUBERNETES_TAG="${KUBE_VERSION}"
 
 export KUBE_SNAP_ROOT="$(readlink -f .)"
 
-export EKS_REPO="${EKS_REPO:-https://beta.cdn.model-rocket.aws.dev}"
+export EKS_REPO="${EKS_REPO:-https://distro.eks.amazonaws.com}"
 export EKS_SPEC="${EKS_SPEC:-kubernetes-1-18/kubernetes-1-18-eks-1.yaml}"
 
 echo "Building with:"
